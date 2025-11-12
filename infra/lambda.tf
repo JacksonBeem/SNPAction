@@ -24,7 +24,7 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_lambda_function" "func" {
-  function_name    = "${var.project_name}-handler"
+  function_name    = "${var.project_name}-handler-${random_id.suffix.hex}"
   role             = aws_iam_role.lambda_role.arn
   runtime          = "python3.12"
   handler          = "lambda_handler.lambda_handler" # file.function

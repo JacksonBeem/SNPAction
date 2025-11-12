@@ -1,0 +1,29 @@
+---
+- name: Deploy static site to S3 and invalidate CloudFront
+  hosts: localhost
+  vars:
+    s3_bucket: "{{ lookup('env','S3_BUCKET') }}"
+    cloudfront_id: "{{ lookup('env','CLOUDFRONT_ID') }}"
+    api_url: "{{ lookup('env','API_URL') }}"
+  tasks:
+    - name: Create config.json with API endpoint
+      copy:
+        dest: "{{ playbook_dir }}/../frontend/config.json"
+        content: |
+          { "api_url": "{{ api_url }}" }
+
+    - name: Upload frontend to S3 (recursive)
+      amazon.aws.s3_object:
+        bucket: "{{ s3_bucket }}"
+        src: "{{ playbook_dir }}/../frontend/"
+        mode: put
+        object: "/"
+        recurse: true
+        overwrite: true
+        headers:
+          Cache-Control: "public, max-age=300"
+
+    - name: Invalidate CloudFront cache
+      amazon.aws.cloudfront_invalidation:
+        distribution_id: "{{ cloudfront_id }}"
+        paths: ["/*"]

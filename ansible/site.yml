@@ -24,6 +24,7 @@
           Cache-Control: "public, max-age=300"
 
     - name: Invalidate CloudFront cache
-      amazon.aws.cloudfront_invalidation:
+      community.aws.cloudfront_invalidation:
         distribution_id: "{{ cloudfront_id }}"
-        paths: ["/*"]
+        paths:
+          - "/*"

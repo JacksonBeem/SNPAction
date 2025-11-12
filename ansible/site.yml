@@ -12,16 +12,14 @@
         content: |
           { "api_url": "{{ api_url }}" }
 
-    - name: Upload frontend to S3 (recursive)
-      amazon.aws.s3_object:
+    - name: Sync frontend/ to S3 bucket
+      community.aws.s3_sync:
         bucket: "{{ s3_bucket }}"
-        src: "{{ playbook_dir }}/../frontend/"
-        mode: put
-        object: "/"
-        recurse: true
-        overwrite: true
-        headers:
-          Cache-Control: "public, max-age=300"
+        file_root: "{{ playbook_dir }}/../frontend/"
+        key_prefix: ""              # upload to bucket root
+        delete: false               # don't delete extra objects in bucket
+        include: "*"
+        exact_timestamps: false
 
     - name: Invalidate CloudFront cache
       community.aws.cloudfront_invalidation:

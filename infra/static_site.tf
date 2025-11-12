@@ -1,8 +1,12 @@
-resource "aws_s3_bucket" "site" { bucket = local.bucket_name }
+resource "aws_s3_bucket" "site" {
+  bucket = local.bucket_name
+}
 
 resource "aws_s3_bucket_ownership_controls" "site" {
   bucket = aws_s3_bucket.site.id
-  rule { object_ownership = "BucketOwnerPreferred" }
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "site" {
@@ -34,28 +38,40 @@ resource "aws_cloudfront_distribution" "cdn" {
   default_cache_behavior {
     target_origin_id       = "s3-origin"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET","HEAD","OPTIONS"]
-    cached_methods         = ["GET","HEAD","OPTIONS"]
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD", "OPTIONS"]
 
     forwarded_values {
       query_string = false
-      cookies { forward = "none" }
+      cookies {
+        forward = "none"
+      }
     }
   }
 
   price_class = "PriceClass_100"
 
-  restrictions { geo_restriction { restriction_type = "none" } }
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
 
-  viewer_certificate { cloudfront_default_certificate = true }
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
 }
 
 data "aws_iam_policy_document" "s3_policy" {
   statement {
     sid = "AllowCloudFrontServicePrincipalReadOnly"
-    principals { type = "Service", identifiers = ["cloudfront.amazonaws.com"] }
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.site.arn}/*"]
+
     condition {
       test     = "StringEquals"
       variable = "AWS:SourceArn"
@@ -69,6 +85,14 @@ resource "aws_s3_bucket_policy" "site" {
   policy = data.aws_iam_policy_document.s3_policy.json
 }
 
-output "s3_bucket"          { value = aws_s3_bucket.site.bucket }
-output "cloudfront_domain"  { value = aws_cloudfront_distribution.cdn.domain_name }
-output "cloudfront_id"      { value = aws_cloudfront_distribution.cdn.id }
+output "s3_bucket" {
+  value = aws_s3_bucket.site.bucket
+}
+
+output "cloudfront_domain" {
+  value = aws_cloudfront_distribution.cdn.domain_name
+}
+
+output "cloudfront_id" {
+  value = aws_cloudfront_distribution.cdn.id
+}

@@ -16,14 +16,14 @@
       community.aws.s3_sync:
         bucket: "{{ s3_bucket }}"
         file_root: "{{ playbook_dir }}/../frontend/"
-        key_prefix: ""          # upload to bucket root
+        key_prefix: ""
         include: "*"
-        delete: false           # don't delete extra keys
+        delete: false
         file_change_strategy: checksum
         cache_control: "public, max-age=300"
 
     - name: Invalidate CloudFront cache
       community.aws.cloudfront_invalidation:
         distribution_id: "{{ cloudfront_id }}"
-        paths:
+        target_paths:
           - "/*"

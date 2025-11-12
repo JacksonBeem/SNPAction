@@ -16,10 +16,11 @@
       community.aws.s3_sync:
         bucket: "{{ s3_bucket }}"
         file_root: "{{ playbook_dir }}/../frontend/"
-        key_prefix: ""              # upload to bucket root
-        delete: false               # don't delete extra objects in bucket
+        key_prefix: ""          # upload to bucket root
         include: "*"
-        exact_timestamps: false
+        delete: false           # don't delete extra keys
+        file_change_strategy: checksum
+        cache_control: "public, max-age=300"
 
     - name: Invalidate CloudFront cache
       community.aws.cloudfront_invalidation:

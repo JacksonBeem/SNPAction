@@ -38,7 +38,7 @@ This repository deploys the **SNP** application — a Python-based AWS Lambda ba
   
 ---
 
-## 🧾 Deployment Steps (New Workflow)
+## Deployment Steps (New Workflow)
 
 ### 1️⃣ **Prepare AWS credentials**
 In your GitHub repo →  
@@ -77,7 +77,7 @@ Open the CloudFront domain in a browser to view your deployed frontend.
 
 ---
 
-## 🏗️ Steps We Took to Build This
+## Steps We Took to Build This
 
 1. **Created core app structure**
    - `backend/lambda_handler.py` for the Python Lambda.  

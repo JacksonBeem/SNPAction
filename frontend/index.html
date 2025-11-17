@@ -27,6 +27,16 @@
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
         }
+        h4 {
+            color: #007bff;
+        }
+        h5 {
+            color: #f8f8f2;
+            background-color: #4a525f;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 0;
+        }
         /* Styling for each form section */
         .form-section {
             border: 1px solid #ddd;
@@ -74,15 +84,50 @@
             color: #555;
             margin: 20px 0;
         }
+        
+        /* UPDATED: Results Area Styling */
         #response-area {
-            background-color: #282c34; /* Dark background for code */
-            color: #f8f8f2;
-            padding: 15px;
+            background-color: #282c34; /* Dark background */
+            color: #f8f8f2; /* Light text */
+            padding: 20px;
             border-radius: 8px;
-            white-space: pre-wrap; /* Wraps long lines */
-            word-wrap: break-word; /* Breaks long words */
             margin-top: 20px;
+            line-height: 1.6;
         }
+        /* NEW: Styles for formatted meal plan */
+        #response-area .day-plan {
+            border-bottom: 2px solid #555;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        #response-area .day-plan:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        #response-area .meal-item {
+            border-left: 3px solid #007bff;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+        #response-area ul, #response-area ol {
+            padding-left: 20px;
+        }
+        #response-area li {
+            margin-bottom: 5px;
+        }
+        #response-area strong {
+            color: #98c379; /* Greenish for emphasis */
+        }
+        #response-area em {
+            color: #abb2bf; /* Lighter text for justifications */
+            font-style: italic;
+        }
+        /* Style for pre-formatted JSON (for meal suggestions) */
+        #response-area pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
     </style>
 </head>
 <body>
@@ -90,7 +135,6 @@
     <div class="container">
         <h2>Smart Nutrition Planner</h2>
 
-        <!-- SECTION 1: SHARED USER PROFILE -->
         <div class="form-section">
             <h3>1. Your Profile</h3>
             <div class="form-group">
@@ -113,7 +157,6 @@
             </div>
         </div>
 
-        <!-- SECTION 2: MEAL SUGGESTION -->
         <div class="form-section">
             <h3>2. Get a Quick Meal Suggestion</h3>
             <p>Get two meal options based on your profile.</p>
@@ -126,7 +169,6 @@
             </form>
         </div>
 
-        <!-- SECTION 3: MEAL PLAN -->
         <div class="form-section">
             <h3>3. Generate a Full Meal Plan</h3>
             <p>Get a complete 1 or 3 day plan based on your profile.</p>
@@ -142,10 +184,10 @@
             </form>
         </div>
 
-        <!-- SECTION 4: RESULTS -->
         <h3>Results</h3>
         <p id="loading-indicator">Generating your plan... Please wait.</p>
-        <pre id="response-area">Your results will appear here...</pre>
+
+        <div id="response-area">Your results will appear here...</div>
 
     </div>
 
@@ -184,6 +226,83 @@
             };
         }
 
+        // -----------------------------------------------------------------
+        // NEW HELPER FUNCTIONS TO FORMAT THE MEAL PLAN
+        // -----------------------------------------------------------------
+
+        /**
+         * Helper function to format a single meal object into an HTML string
+         */
+        function formatMeal(meal, mealName) {
+            if (!meal) return ''; // Handle missing meals (e.g., no snack)
+
+            // Convert arrays to <li> items
+            const ingredientsList = meal.ingredients.map(item => `<li>${item}</li>`).join('');
+            const instructionsList = meal.instructions.map(item => `<li>${item}</li>`).join('');
+            
+            // Nutrition
+            const nutrition = meal.nutritional_breakdown;
+            const macros = nutrition.macros;
+
+            return `
+                <div class="meal-item">
+                    <h5>${mealName.charAt(0).toUpperCase() + mealName.slice(1)}: ${meal.title}</h5>
+                    <p><em>${meal.goal_justification}</em></p>
+                    
+                    <strong>Ingredients:</strong>
+                    <ul>${ingredientsList}</ul>
+                    
+                    <strong>Instructions:</strong>
+                    <ol>${instructionsList}</ol>
+                    
+                    <strong>Nutrition (approx.):</strong>
+                    <ul>
+                        <li>Calories: ${nutrition.calories}</li>
+                        <li>Protein: ${macros.protein_g}g</li>
+                        <li>Fat: ${macros.fat_g}g</li>
+                        <li>Carbs: ${macros.carbohydrates_g}g</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        /**
+         * Helper function to format the entire meal plan JSON into HTML
+         */
+        function formatMealPlan(data) {
+            let html = `<h3>${data.plan_title}</h3>`;
+
+            data.days.forEach(day => {
+                const summary = day.daily_nutritional_summary;
+                const macros = summary.macros;
+
+                html += `<div class="day-plan">`;
+                html += `<h4>Day ${day.day}</h4>`;
+                html += `<p><strong>Daily Goal:</strong> ${day.daily_goal_justification}</p>`;
+                
+                html += `<strong>Daily Summary (approx.):</strong>`;
+                html += `<ul>
+                            <li>Calories: ${summary.calories}</li>
+                            <li>Protein: ${macros.protein_g}g</li>
+                            <li>Fat: ${macros.fat_g}g</li>
+                            <li>Carbs: ${macros.carbohydrates_g}g</li>
+                         </ul>`;
+                
+                html += `<hr style="border-top: 1px solid #555; border-bottom: 0;">`;
+
+                // Format each meal
+                html += formatMeal(day.breakfast, 'breakfast');
+                html += formatMeal(day.lunch, 'lunch');
+                html += formatMeal(day.dinner, 'dinner');
+                html += formatMeal(day.snack, 'snack');
+                
+                html += `</div>`;
+            });
+
+            return html;
+        }
+
+
         /**
          * Helper function to handle calling the API and displaying the result
          */
@@ -195,7 +314,8 @@
             }
 
             loadingIndicator.style.display = 'block';
-            responseArea.textContent = 'Fetching response...';
+            // CHANGED: Use innerHTML and clear old content
+            responseArea.innerHTML = 'Fetching response...';
 
             try {
                 const response = await fetch(`${API_GATEWAY_INVOKE_URL}/${endpoint}`, {
@@ -208,15 +328,27 @@
                 
                 const data = await response.json();
                 
+                // ---------------------------------------------------------
+                // CHANGED: This block now checks the endpoint
+                // ---------------------------------------------------------
                 if (response.ok) {
-                    // Format the JSON with 2-space indentation for readability
-                    responseArea.textContent = JSON.stringify(data, null, 2);
+                    if (endpoint === 'meal-plan') {
+                        // Use our new HTML formatter
+                        responseArea.innerHTML = formatMealPlan(data);
+                    } else {
+                        // For 'meal-suggestion', the simple JSON is fine.
+                        // Wrap it in <pre> to keep the JSON formatting
+                        responseArea.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    }
                 } else {
+                    // Use textContent for errors to prevent HTML injection
                     responseArea.textContent = `Error: ${data.error || 'An unknown error occurred.'}`;
                 }
+                // ---------------------------------------------------------
 
             } catch (error) {
                 console.error('Fetch error:', error);
+                // Use textContent for errors
                 responseArea.textContent = `Network Error: Could not connect to the API. Make sure the URL is correct and CORS is enabled.\n\n${error.message}`;
             } finally {
                 loadingIndicator.style.display = 'none';

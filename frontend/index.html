@@ -85,7 +85,6 @@
             margin: 20px 0;
         }
         
-        /* UPDATED: Results Area Styling */
         #response-area {
             background-color: #282c34; /* Dark background */
             color: #f8f8f2; /* Light text */
@@ -94,7 +93,7 @@
             margin-top: 20px;
             line-height: 1.6;
         }
-        /* NEW: Styles for formatted meal plan */
+        /* Styles for formatted meal plan */
         #response-area .day-plan {
             border-bottom: 2px solid #555;
             padding-bottom: 15px;
@@ -122,7 +121,7 @@
             color: #abb2bf; /* Lighter text for justifications */
             font-style: italic;
         }
-        /* Style for pre-formatted JSON (for meal suggestions) */
+        /* Style for pre-formatted JSON (fallback) */
         #response-area pre {
             white-space: pre-wrap;
             word-wrap: break-word;
@@ -179,6 +178,7 @@
                         <option value="1">1 Day</option>
                         <option value="3">3 Days</option>
                     </select>
+                </select>
                 </div>
                 <button type="submit">Generate Meal Plan</button>
             </form>
@@ -227,17 +227,32 @@
         }
 
         // -----------------------------------------------------------------
-        // NEW HELPER FUNCTIONS TO FORMAT THE MEAL PLAN
+        // NEW/UPDATED HELPER FUNCTIONS TO FORMAT RESPONSES
         // -----------------------------------------------------------------
 
         /**
          * Helper function to format a single meal object into an HTML string
+         * UPDATED: Now handles two types of ingredient lists:
+         * 1. An array of strings (for meal plans)
+         * 2. An object of key/value pairs (for meal suggestions)
          */
         function formatMeal(meal, mealName) {
-            if (!meal) return ''; // Handle missing meals (e.g., no snack)
+            if (!meal) return ''; // Handle missing meals
 
-            // Convert arrays to <li> items
-            const ingredientsList = meal.ingredients.map(item => `<li>${item}</li>`).join('');
+            // --- UPGRADE: Handle both array and object for ingredients ---
+            let ingredientsList = '';
+            if (Array.isArray(meal.ingredients)) {
+                // Case 1: Array (from meal plan)
+                ingredientsList = meal.ingredients.map(item => `<li>${item}</li>`).join('');
+            } else if (typeof meal.ingredients === 'object' && meal.ingredients !== null) {
+                // Case 2: Object (from meal suggestion)
+                ingredientsList = Object.keys(meal.ingredients).map(key => {
+                    const ingredientName = key.replace(/_/g, ' '); // "chicken_breast" -> "chicken breast"
+                    return `<li><strong>${ingredientName}</strong>: ${meal.ingredients[key]}</li>`;
+                }).join('');
+            }
+            // --- End of upgrade ---
+
             const instructionsList = meal.instructions.map(item => `<li>${item}</li>`).join('');
             
             // Nutrition
@@ -246,7 +261,7 @@
 
             return `
                 <div class="meal-item">
-                    <h5>${mealName.charAt(0).toUpperCase() + mealName.slice(1)}: ${meal.title}</h5>
+                    <h5>${mealName}: ${meal.title}</h5>
                     <p><em>${meal.goal_justification}</em></p>
                     
                     <strong>Ingredients:</strong>
@@ -290,15 +305,25 @@
                 
                 html += `<hr style="border-top: 1px solid #555; border-bottom: 0;">`;
 
-                // Format each meal
-                html += formatMeal(day.breakfast, 'breakfast');
-                html += formatMeal(day.lunch, 'lunch');
-                html += formatMeal(day.dinner, 'dinner');
-                html += formatMeal(day.snack, 'snack');
+                // Format each meal using the upgraded helper
+                html += formatMeal(day.breakfast, 'Breakfast');
+                html += formatMeal(day.lunch, 'Lunch');
+                html += formatMeal(day.dinner, 'Dinner');
+                html += formatMeal(day.snack, 'Snack');
                 
                 html += `</div>`;
             });
 
+            return html;
+        }
+
+        /**
+        * NEW: Helper function to format the meal suggestion JSON into HTML
+        */
+        function formatMealSuggestion(data) {
+            let html = `<h3>Meal Suggestions</h3>`;
+            html += formatMeal(data.meal_option_a, 'Option A');
+            html += formatMeal(data.meal_option_b, 'Option B');
             return html;
         }
 
@@ -314,7 +339,6 @@
             }
 
             loadingIndicator.style.display = 'block';
-            // CHANGED: Use innerHTML and clear old content
             responseArea.innerHTML = 'Fetching response...';
 
             try {
@@ -329,15 +353,17 @@
                 const data = await response.json();
                 
                 // ---------------------------------------------------------
-                // CHANGED: This block now checks the endpoint
+                // UPDATED: Now handles all three cases
                 // ---------------------------------------------------------
                 if (response.ok) {
                     if (endpoint === 'meal-plan') {
-                        // Use our new HTML formatter
+                        // Use the meal plan formatter
                         responseArea.innerHTML = formatMealPlan(data);
+                    } else if (endpoint === 'meal-suggestion') {
+                        // Use the new meal suggestion formatter
+                        responseArea.innerHTML = formatMealSuggestion(data);
                     } else {
-                        // For 'meal-suggestion', the simple JSON is fine.
-                        // Wrap it in <pre> to keep the JSON formatting
+                        // Fallback for any other successful response
                         responseArea.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
                     }
                 } else {
